@@ -1,42 +1,49 @@
 package main
 
 import (
-	"log"
+	"fmt"
 
-	_ "github.com/go-sql-driver/mysql"
 	"github.com/gofiber/fiber/v2"
-
 	"github.com/nguyendinhduy02112002/user_todo/config"
-	"github.com/nguyendinhduy02112002/user_todo/controller"
 	"github.com/nguyendinhduy02112002/user_todo/db"
-
+	"github.com/nguyendinhduy02112002/user_todo/routes"
 	"go.elastic.co/apm"
 	"go.elastic.co/apm/module/apmfiber"
 )
 
+func setupRoutes(app *fiber.App) {
+	// give response when at /
+	app.Get("/", func(c *fiber.Ctx) error {
+		return c.Status(fiber.StatusOK).JSON(fiber.Map{
+			"success": true,
+			"message": "You are at the endpoint 😉",
+		})
+	})
+
+	api := app.Group("/api")
+	api.Get("", func(c *fiber.Ctx) error {
+		return c.Status(fiber.StatusOK).JSON(fiber.Map{
+			"success": true,
+			"message": "You are at the api endpoint 😉",
+		})
+	})
+
+	routes.TodoRoute(api.Group("/user"))
+}
+
 func main() {
-	tracer, err := apm.NewTracer("users-service", "2.0.0")
+	tracer, err := apm.NewTracer("user_service", "2.0.0")
 	if err != nil {
-		log.Fatal(err)
+		fmt.Print(err)
 	}
 	defer tracer.Close()
-
 	config.NewElasticsearchClient()
 	config.ConnectDB()
 	app := fiber.New()
 	db.MigrateDB()
-
 	app.Use(apmfiber.Middleware(apmfiber.WithTracer(tracer)))
 
-	setupUserAPI(app)
 	defer tracer.Flush(nil)
+	setupRoutes(app)
 	app.Listen(":3002")
-
-}
-
-func setupUserAPI(app *fiber.App) {
-	app.Post("/api/users", controller.CreateUser)
-	app.Get("/api/users/:id", controller.GetUser)
-	app.Put("/api/users/:id", controller.UpdateUser)
-	app.Delete("/api/users/:id", controller.DeleteUser)
 }

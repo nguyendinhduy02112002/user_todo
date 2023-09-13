@@ -42,20 +42,37 @@ func CreateUser(c *fiber.Ctx) error {
 	return c.SendString("User created successfully")
 }
 
-func GetUser(c *fiber.Ctx) error {
+func GetUserDetail(c *fiber.Ctx) error {
 	userID := c.Params("id")
 	span, _ := apm.StartSpan(c.Context(), "processGetTodosByUserID", "custom")
 	defer span.End()
 	userInfo, err := CallTodosServiceAPI(userID, c)
-
 	if err != nil {
 		apm.CaptureError(c.Context(), err).Send()
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"message": "Error calling todos service"})
 	}
-
 	return c.JSON(userInfo)
 }
 
+func GetAllUsers(c *fiber.Ctx) error {
+	rows, err := config.MI.DB.QueryContext(c.Context(), "SELECT * from users")
+	if err != nil {
+		apm.CaptureError(c.Context(), err).Send()
+		panic(err.Error)
+	}
+	defer rows.Close()
+	users := []models.User{}
+	for rows.Next() {
+		var user models.User
+		if err := rows.Scan(&user.ID, &user.Password, &user.Username); err != nil {
+			apm.CaptureError(c.Context(), err).Send()
+			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"message": "Internal server error"})
+		}
+		users = append(users, user)
+	}
+	return c.JSON(users)
+
+}
 func UpdateUser(c *fiber.Ctx) error {
 	userID := c.Params("id")
 	var user models.User

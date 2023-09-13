@@ -1,0 +1,18 @@
+apm-server:
+  host: "0.0.0.0:8200"
+  api_key:
+    enabled: false
+    limit: 1000
+  rum:
+    enabled: true
+
+output:
+  elasticsearch:
+    hosts: ["localhost:9200"]
+    protocol: "https"
+    api_key: "LUy-LoAB5bz5ukdMOT0c:ptJZH521TlutsTuHbRvdhQ"
+    ssl.certificate_authorities: /etc/ssl/certs/ca-certificates.crt
+    ssl.certificate_verification: false
+    queue.mem.events: 4096
+
+max_procs: 4
